@@ -107,14 +107,21 @@ edit or delete them without leaving the chat.
 | **[reputation](https://github.com/Domiff/reputation)** | Reputation system with atomic point transfers between users and a full transfer log. Thin views, rules in a service, ORM queries isolated in a repository. | DRF · Simple JWT · drf-spectacular · PostgreSQL |
 | **[site-recipes-api](https://github.com/Domiff/site-recipes-api)** | Recipe service with cookie sessions stored in Redis, CSRF protection and CRUD with categories. | FastAPI · Redis · PostgreSQL · Gunicorn |
 | **[questions-answers-service](https://github.com/Domiff/questions-answers-service)** | Q&A REST API with OpenAPI documentation, fully dockerized. | DRF · PostgreSQL · Docker |
+| **[fastapi-base](https://github.com/Domiff/fastapi-base)** | Starter backend for FastAPI projects: fastapi-users auth with email verification and password reset, a Taskiq worker on RabbitMQ with exponential-backoff retries and dead-letter and delay queues, Redis caching, S3 storage, an admin panel open only to active superusers, and a health check covering the database and Redis. | FastAPI · fastapi-users · SQLAdmin · Taskiq · RabbitMQ · Redis · S3 · Alembic |
 
-### Applications and Bots
+### Applications
+
+| Project | Description | Stack |
+| ------- | ----------- | ----- |
+| **[book-shop](https://github.com/Domiff/book-shop)** | Book store with search, staff catalog management, authentication and a REST API. | Django · PostgreSQL · Docker |
+| **[site-recipes-app](https://github.com/Domiff/site-recipes-app)** | Recipe application with user authentication. | Django · PostgreSQL |
+
+### Bots
 
 | Project | Description | Stack |
 | ------- | ----------- | ----- |
 | **[weather-bot](https://github.com/Domiff/weather-bot)** | Telegram bot for real-time forecasts via the OpenWeatherMap API. | aiogram 3 · aiohttp |
-| **[book-shop](https://github.com/Domiff/book-shop)** | Book store with search, staff catalog management, authentication and a REST API. | Django · PostgreSQL · Docker |
-| **[site-recipes-app](https://github.com/Domiff/site-recipes-app)** | Recipe application with user authentication. | Django · PostgreSQL |
+| **[tarot-cards](https://github.com/Domiff/tarot-cards)** | Telegram bot for the Rider–Waite–Smith tarot deck, with every card description, daily reading and history chapter authored in a separate admin panel. The bot and the admin run as independent processes sharing only the database layer; admin forms validate text against Telegram's 4096-character message limit. | aiogram 3 · SQLAdmin · SQLAlchemy 2 · Alembic · Redis · PostgreSQL |
 
 ---
 
