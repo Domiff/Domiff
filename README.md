@@ -102,7 +102,7 @@ edit or delete them without leaving the chat.
 
 | Project | Description | Stack |
 | ------- | ----------- | ----- |
-| **[social-network](https://github.com/Domiff/social-network)** | Async social network API. RS256-signed JWTs — access token in the response body, refresh token in an httpOnly cookie that rotates on every use. Full async test suite. | FastAPI · SQLAlchemy 2 · Alembic · pytest · httpx |
+| **[realtime-messenger](https://github.com/Domiff/realtime-messenger)** | Realtime messenger backend. RS256-signed JWTs — access token in the response body, refresh token in an httpOnly cookie that rotates on every use. Chats carry membership and roles; messages fan out over WebSockets through Redis pub/sub, so no connection is tied to one process. Rate limiting and WAF-style request checks sit in middleware, with an admin panel over the whole domain. Async test suite across auth and chat. | FastAPI · WebSockets · Redis pub/sub · SQLAlchemy 2 · Alembic · SQLAdmin · S3 · pytest |
 | **[crypto-api](https://github.com/Domiff/crypto-api)** | Deribit index price tracker: a Celery worker ingests prices on a schedule into PostgreSQL, with a read-only API on top. | FastAPI · Celery · RabbitMQ · PostgreSQL |
 | **[reputation](https://github.com/Domiff/reputation)** | Reputation system with atomic point transfers between users and a full transfer log. Thin views, rules in a service, ORM queries isolated in a repository. | DRF · Simple JWT · drf-spectacular · PostgreSQL |
 | **[site-recipes-api](https://github.com/Domiff/site-recipes-api)** | Recipe service with cookie sessions stored in Redis, CSRF protection and CRUD with categories. | FastAPI · Redis · PostgreSQL · Gunicorn |
