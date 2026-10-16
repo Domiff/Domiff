@@ -21,7 +21,7 @@ that behaves the same in production as it does locally.
 
 | Area | Stack |
 | ----------------- | ---------------------------------------------------------------------------- |
-| **Backend**       | Python · FastAPI · Django / DRF · aiogram 3  |
+| **Backend**       | Python · FastAPI · Django / DRF · Strawberry (GraphQL) · aiogram 3  |
 | **Tasks**         | Celery · Taskiq · RabbitMQ                                          |
 | **Data**          | PostgreSQL · Redis · SQLAlchemy 2 · Alembic · S3-compatible storage   |
 | **Auth**          | JWT (RS256, refresh rotation) · fastapi-users · Simple JWT · cookie sessions · CSRF · RBAC |
@@ -56,43 +56,56 @@ the staff directory and the wording of every transactional email.
 
 ---
 
-### [todo-api](https://github.com/Domiff/todo-api) — task manager API
+### [blog](https://github.com/Domiff/blog) — blog API behind a GraphQL schema
 
-A Django REST API for task management — tasks with categories, deadlines and
-completion status — reachable from the web or from Telegram, where
-[todo-bot](https://github.com/Domiff/todo-bot) speaks to the same endpoints.
+A FastAPI service where REST covers only authentication and the whole domain —
+posts, comments and profiles — is exposed through a single GraphQL schema.
 
-- **Two registration flows behind one identity model** — separate Telegram and web
-  profiles, so the same person reaches the same tasks from either entry point.
-- **JWT with rotation and blacklisting** — a refresh token is invalidated the moment
-  it is exchanged, closing the replay window on a stolen token.
-- **Async CRUD views** over tasks and urgency-based categories, documented with an
-  auto-generated OpenAPI schema and Swagger UI.
-- **Deployed as a full stack** — Nginx terminating SSL and serving static files in
-  front of the application over a Unix socket, PostgreSQL behind it.
-- **Centralized logging** — container logs collected by Promtail into Loki and read
-  in Grafana, across every service in the compose file.
+- **DataLoaders against N+1** — related fields such as `Post.author`, `Profile.posts` and
+  the comment counts batch every key requested at one level of the query into a single
+  `IN (...)` or `GROUP BY` statement, so the number of SQL queries stays flat as the
+  result grows.
+- **Ownership checked per mutation** — a post or comment can only be edited, published or
+  deleted by the profile that owns it, while queries stay public.
+- **Tokens that can actually be revoked** — RS256 JWTs with a 15-minute access token and a
+  30-day refresh, plus a Redis blocklist, so a logout takes effect at once instead of
+  waiting out the expiry.
+- **An explicit error boundary** — application errors carry a code in `extensions.code`,
+  unexpected ones are masked and left only in the logs, and any request with errors rolls
+  back its transaction.
+- **Domain modules own their GraphQL layer** — `auth`, `profile` and `blog` each keep their
+  models, repository, types, mutations, loaders and admin views together.
 
-`Django` · `DRF` · `Simple JWT` · `drf-spectacular` · `PostgreSQL` · `Nginx` ·
-`Docker Compose` · `Grafana + Loki + Promtail`
+`FastAPI` · `Strawberry GraphQL` · `AuthX` · `JWT (RS256)` · `SQLAlchemy 2 (async)` ·
+`Alembic` · `PostgreSQL` · `Redis` · `SQLAdmin`
 
 ---
 
-### [todo-bot](https://github.com/Domiff/todo-bot) — Telegram client for the task manager
+### [realtime-messenger](https://github.com/Domiff/realtime-messenger) — messenger backend with live delivery
 
-A conversational front end to the same API: register, browse tasks, and create,
-edit or delete them without leaving the chat.
+A FastAPI backend for chats: membership with roles, message history over REST and live
+delivery over WebSockets, with a SQLAdmin back office on top.
 
-- **Dialog-based UI** — multi-step forms for title, body, deadline and category built
-  as finite state machines rather than a chain of ad-hoc message handlers.
-- **FSM state in Redis**, so a user's half-finished form survives a bot restart.
-- **Token lifecycle handled by the client** — the bot registers, refreshes and
-  validates JWTs against the API, and re-authenticates transparently on expiry.
-- **Layered structure** — each feature owns its router, handlers, windows, states and
-  a service; HTTP access is confined to a single client with typed URL enums.
+- **Delivery through Redis pub/sub** — every frame is persisted as a message and published
+  to a channel shared by the chat's members, and each member's socket forwards it on. No
+  connection is tied to the process that accepted it, so the app scales past one worker.
+- **Roles and membership as domain rules** — `owner`, `admin` or `member` per chat, chats
+  that are private or group, and a second join answered with `409` rather than a duplicate
+  row.
+- **The WebSocket handshake carries the token in the query string** — browsers cannot set
+  headers there, so the token is read from the URL and the socket joins the chat and
+  subscribes on connect.
+- **Rate limits tuned per endpoint** — 3 logins a minute against guessing, but a looser
+  limit on refresh, because clients call it themselves and several open tabs would trip a
+  tight one at once.
+- **Every auth failure answers the same `401`** — a bad token, an unknown email and a wrong
+  password are indistinguishable, so the API cannot be used to enumerate accounts. The
+  refresh token stays in an httpOnly, secure, `samesite=strict` cookie and rotates on use.
+- **Tests need no services** — the suite runs against in-memory SQLite built from the
+  SQLAlchemy metadata, with payloads from Faker factories.
 
-`aiogram 3` · `aiogram-dialog` · `Redis` · `pydantic-settings` · `Docker Compose` ·
-`Grafana + Loki`
+`FastAPI` · `WebSockets` · `Redis pub/sub` · `SQLAlchemy 2 (async)` · `Alembic` ·
+`fastapi-guard` · `SQLAdmin` · `S3` · `PostgreSQL` · `pytest`
 
 ---
 
@@ -102,12 +115,11 @@ edit or delete them without leaving the chat.
 
 | Project | Description | Stack |
 | ------- | ----------- | ----- |
-| **[realtime-messenger](https://github.com/Domiff/realtime-messenger)** | Realtime messenger backend. RS256-signed JWTs — access token in the response body, refresh token in an httpOnly cookie that rotates on every use. Chats carry membership and roles; messages fan out over WebSockets through Redis pub/sub, so no connection is tied to one process. Rate limiting and WAF-style request checks sit in middleware, with an admin panel over the whole domain. Async test suite across auth and chat. | FastAPI · WebSockets · Redis pub/sub · SQLAlchemy 2 · Alembic · SQLAdmin · S3 · pytest |
+| **[todo-api](https://github.com/Domiff/todo-api)** | Task manager API: Simple JWT with rotation and a token blacklist, separate web and Telegram registration flows behind one identity model, async CRUD over tasks and urgency-based categories, Swagger docs. Deployed behind Nginx over a Unix socket, with container logs collected by Promtail into Loki. | Django · DRF · Simple JWT · PostgreSQL · Nginx · Docker Compose · Grafana + Loki |
 | **[crypto-api](https://github.com/Domiff/crypto-api)** | Deribit index price tracker: a Celery worker ingests prices on a schedule into PostgreSQL, with a read-only API on top. | FastAPI · Celery · RabbitMQ · PostgreSQL |
 | **[reputation](https://github.com/Domiff/reputation)** | Reputation system with atomic point transfers between users and a full transfer log. Thin views, rules in a service, ORM queries isolated in a repository. | DRF · Simple JWT · drf-spectacular · PostgreSQL |
 | **[site-recipes-api](https://github.com/Domiff/site-recipes-api)** | Recipe service with cookie sessions stored in Redis, CSRF protection and CRUD with categories. | FastAPI · Redis · PostgreSQL · Gunicorn |
 | **[questions-answers-service](https://github.com/Domiff/questions-answers-service)** | Q&A REST API with OpenAPI documentation, fully dockerized. | DRF · PostgreSQL · Docker |
-| **[fastapi-base](https://github.com/Domiff/fastapi-base)** | Starter backend for FastAPI projects: fastapi-users auth with email verification and password reset, a Taskiq worker on RabbitMQ with exponential-backoff retries and dead-letter and delay queues, Redis caching, S3 storage, an admin panel open only to active superusers, and a health check covering the database and Redis. | FastAPI · fastapi-users · SQLAdmin · Taskiq · RabbitMQ · Redis · S3 · Alembic |
 
 ### Applications
 
@@ -120,6 +132,7 @@ edit or delete them without leaving the chat.
 
 | Project | Description | Stack |
 | ------- | ----------- | ----- |
+| **[todo-bot](https://github.com/Domiff/todo-bot)** | Telegram client for [todo-api](https://github.com/Domiff/todo-api): multi-step forms built as finite state machines rather than a chain of message handlers, FSM state kept in Redis so a half-filled form survives a restart, and JWTs refreshed by the bot itself. | aiogram 3 · aiogram-dialog · Redis · Docker Compose |
 | **[weather-bot](https://github.com/Domiff/weather-bot)** | Telegram bot for real-time forecasts via the OpenWeatherMap API. | aiogram 3 · aiohttp |
 | **[tarot-cards](https://github.com/Domiff/tarot-cards)** | Telegram bot for the Rider–Waite–Smith tarot deck, with every card description, daily reading and history chapter authored in a separate admin panel. The bot and the admin run as independent processes sharing only the database layer; admin forms validate text against Telegram's 4096-character message limit. | aiogram 3 · SQLAdmin · SQLAlchemy 2 · Alembic · Redis · PostgreSQL |
 
